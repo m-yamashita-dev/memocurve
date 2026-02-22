@@ -81,6 +81,8 @@ const icons = {
   plus: "M12 5v14M5 12h14",
   study: "M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11",
   list: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+  chat: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+  send: "M22 2L11 13",
   trash: "M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2",
   img: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
   close: "M18 6L6 18M6 6l12 12",
@@ -166,6 +168,7 @@ export default function App() {
         {[
           { id: "study", label: "今日の問題", icon: icons.study },
           { id: "add", label: "追加", icon: icons.plus },
+          { id: "chat", label: "AI質問", icon: icons.chat },
           { id: "manage", label: "管理", icon: icons.list },
         ].map(({ id, label, icon }) => (
           <button key={id} style={{ ...S.navBtn, ...(view === id || (view === "quiz" && id === "study") ? S.navBtnActive : {}) }} onClick={() => setView(id)}>
@@ -179,10 +182,66 @@ export default function App() {
         {view === "study" && <StudyView cards={cards} dueCards={dueCards} onStudy={() => setView("quiz")} />}
         {view === "quiz" && <QuizView dueCards={dueCards} onRate={reviewCard} onDone={() => setView("study")} />}
         {view === "add" && <AddView onAdd={addCard} onCancel={() => setView("study")} />}
+        {view === "chat" && <ChatView />}
         {view === "manage" && <ManageView cards={cards} selected={selected} setSelected={setSelected} onDelete={deleteCard} onDeleteSelected={deleteSelected} onDeleteAll={deleteAll} />}
       </main>
 
       {toast && <div style={{ ...S.toast, ...(toast.type === "warn" ? S.toastWarn : S.toastOk) }} className="toast-in">{toast.msg}</div>}
+    </div>
+  );
+}
+
+function ChatView() {
+  const [question, setQuestion] = useState("");
+  const [history, setHistory] = useState([]);
+
+  const submitQuestion = () => {
+    const trimmed = question.trim();
+    if (!trimmed) return;
+    const askedAt = new Date();
+    const url = `https://chatgpt.com/?q=${encodeURIComponent(trimmed)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setHistory((prev) => [{ id: `${askedAt.getTime()}`, text: trimmed, askedAt: askedAt.toISOString() }, ...prev].slice(0, 10));
+    setQuestion("");
+  };
+
+  return (
+    <div style={S.chatWrap}>
+      <div style={S.chatInfoCard}>
+        <div style={S.sectionTitle}>ChatGPT（無料）に質問</div>
+        <div style={S.chatInfoText}>入力した質問をChatGPTの無料版へ送ります。送信すると新しいタブでChatGPTが開きます。</div>
+      </div>
+
+      <div style={S.field}>
+        <label style={S.label}>質問内容</label>
+        <textarea
+          style={{ ...S.textarea, minHeight: 120 }}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="例: この問題の覚え方を3つ教えて"
+        />
+      </div>
+
+      <button style={{ ...S.submitBtn, ...(question.trim() ? {} : S.submitDisabled), display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }} disabled={!question.trim()} onClick={submitQuestion}>
+        <Icon d={icons.send} size={14} />
+        ChatGPTに質問する
+      </button>
+
+      <div style={S.section}>
+        <div style={S.sectionTitle}>最近の質問</div>
+        {history.length === 0 ? (
+          <div style={{ ...S.metaText, fontSize: 13 }}>まだ質問はありません</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {history.map((item) => (
+              <div key={item.id} style={S.chatHistoryItem}>
+                <div style={S.chatHistoryText}>{item.text}</div>
+                <div style={S.metaText}>{new Date(item.askedAt).toLocaleString("ja-JP")}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -513,6 +572,11 @@ const S = {
   rateBtnSub: { fontSize: 11, color: "#64748b" },
   addWrap: { padding: "20px 16px", display: "flex", flexDirection: "column", gap: 16 },
   addTitle: { fontSize: 18, fontWeight: 700, color: "#f1f5f9" },
+  chatWrap: { padding: "20px 16px", display: "flex", flexDirection: "column", gap: 14 },
+  chatInfoCard: { background: "#0f172a", border: "1px solid #1e293b", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8 },
+  chatInfoText: { color: "#94a3b8", fontSize: 13, lineHeight: 1.6 },
+  chatHistoryItem: { background: "#0b1220", border: "1px solid #1e293b", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column", gap: 6 },
+  chatHistoryText: { color: "#e2e8f0", fontSize: 14, lineHeight: 1.5 },
   typeRow: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 },
   typeBtn: { background: "#0f172a", border: "1px solid #1e293b", color: "#94a3b8", borderRadius: 8, padding: "10px 8px", cursor: "pointer" },
   typeBtnActive: { borderColor: "#f59e0b", color: "#fcd34d", background: "#201505" },

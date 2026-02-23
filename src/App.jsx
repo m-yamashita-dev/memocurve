@@ -29,6 +29,29 @@ function answerPreview(card) {
   return card.choices?.[idx] || "";
 }
 
+function openChatGPTWithQuery(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const url = `https://chatgpt.com/?q=${encodeURIComponent(trimmed)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function buildCardContextPrompt(card) {
+  const lines = [
+    "次の問題について、覚え方をわかりやすく教えてください。",
+    `出題形式: ${typeLabel(card.questionType)}`,
+  ];
+
+  if (card.questionText?.trim()) lines.push(`問題文: ${card.questionText.trim()}`);
+  if (card.questionType !== QUESTION_TYPES.FREE && Array.isArray(card.choices) && card.choices.length > 0) {
+    const normalizedChoices = card.choices.map((choice, i) => `${i + 1}. ${choice || ""}`);
+    lines.push(`選択肢:\n${normalizedChoices.join("\n")}`);
+  }
+  lines.push(`正解: ${answerPreview(card) || "未設定"}`);
+  lines.push("短い要点・覚え方（語呂合わせがあればそれも）・最後に確認クイズ1問をください。");
+  return lines.join("\n\n");
+}
+
 function sm2(card, quality) {
   let { repetitions = 0, easeFactor = 2.5, interval = 1 } = card;
   const ef = Math.max(1.3, easeFactor + 0.1 - (3 - quality) * (0.08 + (3 - quality) * 0.02));
@@ -312,6 +335,7 @@ function QuizView({ dueCards, onRate, onDone }) {
   const nextIntervals = [1, 1, Math.round((card.interval || 1) * (card.easeFactor || 2.5)), Math.round((card.interval || 1) * (card.easeFactor || 2.5) * 1.3)];
   const isChoiceType = card.questionType !== QUESTION_TYPES.FREE;
   const canReveal = isChoiceType ? selectedChoice !== null : freeInput.trim().length > 0;
+  const askMemorizationTips = () => openChatGPTWithQuery(buildCardContextPrompt(card));
 
   return (
     <div style={S.quizWrap}>
@@ -349,6 +373,9 @@ function QuizView({ dueCards, onRate, onDone }) {
               <div style={S.answerLabel}>答え</div>
               <div style={S.answerText}>{answerPreview(card)}</div>
               {!isChoiceType && <div style={S.userInputNote}>あなたの入力: {freeInput.trim()}</div>}
+              <button style={{ ...S.revealBtn, ...S.askAiBtn }} onClick={askMemorizationTips}>
+                この問題の覚え方をAIに聞く
+              </button>
             </div>
             <div style={S.rateLabel}>理解度を評価してください</div>
             <div style={S.rateRow}>
@@ -558,6 +585,7 @@ const S = {
   choiceBtn: { textAlign: "left", background: "#0b1220", border: "1px solid #334155", borderRadius: 10, color: "#cbd5e1", padding: "10px 12px", cursor: "pointer" },
   choiceBtnActive: { borderColor: "#f59e0b", background: "#211700", color: "#fcd34d" },
   revealBtn: { display: "block", width: "calc(100% - 40px)", margin: "20px auto", background: "#1e293b", border: "1px solid #334155", color: "#94a3b8", padding: 14, borderRadius: 10, fontSize: 15, cursor: "pointer" },
+  askAiBtn: { width: "100%", margin: "12px 0 0", background: "#1e293b", color: "#cbd5e1", borderColor: "#334155", fontSize: 13, padding: "10px 12px" },
   answerBox: { margin: "20px 20px 0", background: "#0a1628", border: "1px solid #1e3a5f", borderRadius: 12, padding: 16 },
   answerLabel: { fontSize: 11, color: "#60a5fa", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8, textTransform: "uppercase" },
   answerText: { fontSize: 16, color: "#e2e8f0", lineHeight: 1.7, whiteSpace: "pre-wrap" },

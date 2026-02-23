@@ -230,8 +230,8 @@ function ChatView() {
   return (
     <div style={S.chatWrap}>
       <div style={S.chatInfoCard}>
-        <div style={S.sectionTitle}>ChatGPT（無料）に質問</div>
-        <div style={S.chatInfoText}>入力した質問をChatGPTの無料版へ送ります。送信すると新しいタブでChatGPTが開きます。</div>
+        <div style={S.sectionTitle}>ChatGPTに質問</div>
+        <div style={S.chatInfoText}>入力した質問をChatGPTへ送ります。送信すると新しいタブでChatGPTが開き、ログイン中のプランで利用されます。</div>
       </div>
 
       <div style={S.field}>
